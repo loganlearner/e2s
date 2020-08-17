@@ -1,0 +1,70 @@
+@name Tombs
+@persist TimeLength Tombs:table Mdls:table Index 
+
+if(first()){
+    runOnTick(1)
+    runOnDeath(1)
+    Index = 1
+    TimeLength = 60
+    
+    Mdls = table( #model, scale, Z offset
+        table("models/props_c17/gravestone002a.mdl", 0.6, 18), 
+        table("models/props_c17/gravestone_cross001a.mdl", 0.4, 32),
+        table("models/props_c17/gravestone004a.mdl", 0.6, 10),
+        table("models/props_c17/gravestone003a.mdl", 0.6, 13)
+    )
+}
+
+if(deathClk()){  
+    local Model = randint(1,Mdls:count())
+    local D = Mdls[Model,table]
+
+    holoCreate(Index)
+        holoScale(Index, vec(D[2,number]))
+        holoModel(Index, D[1,string])
+        holoPos(Index, lastDeath():pos())
+        holoAng(Index, lastDeath():angles():setPitch(0))
+        holoAlpha(Index, 255)
+        
+    Tombs:pushTable(table(Index, curtime(), Model, lastDeath():vel():x(), lastDeath():vel():y(), lastDeath():vel():z(), curtime(), 0))
+    Index++
+}
+
+if(changed(Tombs:count())){
+    if(Tombs:count() > 10){
+        holoDelete(Tombs[1,table][1,number])
+        Tombs:remove(1)
+    }
+}
+
+for(I=1,Tombs:count()){
+    local V = Tombs[I,table]
+    if((curtime() - V[2,number]) > TimeLength){
+        holoDelete(V[1,number])
+        Tombs:remove(I)
+    }else{
+        local D = Mdls[V[3,number],table][3,number]
+        local G = 9.8 #gravity
+        local T = (curtime() - V[7,number])
+        local P = clamp((1/2)*G*(T^2), 0, 3500)
+        rangerFilter(players())
+        local R = rangerOffset(D, holoEntity(V[1,number]):pos(), vec(0,0,-1))
+        
+        if(!R:hit()){
+            V[8,number] = 0
+            holoPos(V[1,number], (holoEntity(V[1,number]):pos() + vec(V[4,number]/100,V[5,number]/100,0)) - vec(0,0,P))
+        }else{
+            local Norm = R:hitNormal()
+            local Slide = Norm:cross(vec(0,0,-1)):cross(Norm)
+            holoPos(V[1,number], (R:pos()+vec(0,0,D-0.5)) + (Slide * Slide:dot(vec(0,0,-1)))) #Sliding
+            if(V[8,number] == 0){
+                holoEntity(V[1,number]):soundPlay(V[1,number],1,"physics/concrete/concrete_break" + randint(2,3) + ".wav")
+                V[8,number] = 1
+            }
+            V[4,number] = 0 #velocity resets
+            V[5,number] = 0
+            V[6,number] = 0
+            V[7,number] = curtime()
+        }
+    }
+}

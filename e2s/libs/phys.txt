@@ -1,0 +1,53 @@
+@name phys
+
+function entity:moveTo(Position:vector){
+    This:applyForce(((Position-This:massCenter())*10-This:vel())*This:mass())
+}
+
+function entity:hover(){
+    local G = vec(0,0,1)
+    This:applyForce((G*10-This:vel())*This:mass())
+}
+
+function entity:fixAngles(Target:angle){
+    local Pos = This:pos()
+
+    local TarQ = quat(Target)
+    local CurQ = quat(This)
+    
+    local Q = TarQ/CurQ
+    local V = This:toLocal(rotationVector(Q) + Pos)
+    This:applyTorque((150*V-12*This:angVelVector())*This:inertia())
+}
+
+function entity:aimAt(Tar:vector,Offset:angle){
+    This:fixAngles((This:pos() - Tar):toAngle() + Offset)
+}
+
+function entity:upRight(Delta){
+    This:fixAngles(ang(0, This:angles():yaw() + Delta, 0))
+}
+
+function entity:posAng(Position:vector,Angle:angle){
+    This:setPos(Position)
+    This:setAng(Angle)
+}
+
+function entity:posAngA(Position:vector,Angle:angle){
+    This:moveTo(Position)
+    This:fixAngles(Angle)
+}
+
+function number cosine(A, B, C){
+    return acos((A^2 + B^2 - C^2) / (2*A*B))
+}
+   
+function ik(L1,L2,Hip:entity,Foot:vector,Chassis:entity,I1,I2){    
+    local Axis = Chassis:toLocalAxis(Foot - Hip:pos())
+    local Angle = Axis:toAngle():setRoll(-bearing(Hip:pos(), Chassis:angles(), Foot))
+    local Dist = min(Axis:length(), L1 + L2)
+    local Quat = quat(Angle) * qRotation(vec(0,90 + cosine(Dist, L1, L2),0))
+       
+    holoAng(I1, Chassis:toWorld(Quat:toAngle()))
+    holoAng(I2, Hip:toWorld(ang(cosine(L2, L1, Dist) + 180, 0, 0)))
+}

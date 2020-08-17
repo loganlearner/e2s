@@ -1,0 +1,43 @@
+@name lib/triangle
+
+function number sqrt(V:vector){
+    return sqrt(V:x()) + sqrt(V:y()) + sqrt(V:z())
+}
+
+function vector pow(V:vector, N){
+    return vec(V:x()^N, V:y()^N, V:z()^N)
+}
+
+function vector averageVec(V1:vector, V2:vector, V3:vector){
+    return (V1 + V2 + V3) / 3
+}
+
+function vector getNormal(V1:vector, V2:vector, V3:vector){
+    local U = V2 - V1
+    local V = V3 - V1
+    
+    return U:cross(V):normalized()
+}
+
+function tri(Index, V1:vector, V2:vector, V3:vector){
+    local AvgVec = averageVec(V1, V2, V3)
+    local Norm = getNormal(V1, V2, V3)
+    local Ang = Norm:toAngle()
+    
+    holoCreate(Index)
+        holoPos(Index, AvgVec)
+        holoAng(Index, Ang)
+        holoScaleUnits(Index, vec(0.1, 500, 500))
+        #holoDisableShading(Index, 1)
+        
+        local C1 = ((V1+V2)/2)
+        holoClip(Index, 1, C1, Norm:cross(V2 - V1), 1)
+        local C2 = ((V2+V3)/2)
+        holoClip(Index, 2, C2, Norm:cross(V3 - V2), 1)
+        local C3 = ((V1+V3)/2)
+        holoClip(Index, 3, C3, Norm:cross(V1 - V3), 1)
+        
+        holoClipEnabled(Index, 1, 1)
+        holoClipEnabled(Index, 2, 1)
+        holoClipEnabled(Index, 3, 1)
+}

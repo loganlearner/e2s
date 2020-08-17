@@ -1,0 +1,68 @@
+@name Terrian generation
+@persist Detail Size Map:table Index ZOff I J
+@persist CellSize N
+interval(100)
+
+function number nlerp(A,B,F){
+    return A + F * (B - A)
+}
+
+function generateMap(S){
+    local Seed = random(1,200)
+    
+    for(I=1, S){
+        local Vals = table()
+        for(J=1, S){
+            Seed = nlerp(Seed, random(1, 200), 0.05)
+            Vals:pushNumber(Seed)
+        }
+        Map:pushTable(Vals)
+    }
+}
+
+if(first()){
+    #include "lib/triangle"
+    
+    Detail = 5
+    ZOff = 20
+    Size = 20
+    CellSize = 20
+    Index = 1
+    I = 1
+    J = 1
+    N = 1
+    
+    generateMap(Size)
+}
+
+while(I<Size & perf(50) & holoCanCreate()){
+    
+    if(N == 1){
+        local V1 = entity():toWorld(vec(I*CellSize, J*CellSize, Map[I,table][J,number]+ZOff))
+        local V2 = entity():toWorld(vec((I+1)*CellSize, J*CellSize, Map[I+1,table][J,number]+ZOff))
+        local V3 = entity():toWorld(vec(I*CellSize, (J+1)*CellSize, Map[I,table][J+1,number]+ZOff))
+        
+        tri(Index, V1, V2, V3)
+        holoMaterial(Index, "phoenix_storms/ps_grass")
+            
+        Index++
+        N = 2
+    }else{
+        local V4 = entity():toWorld(vec(I*CellSize, (J+1)*CellSize, Map[I,table][J+1,number]+ZOff))
+        local V5 = entity():toWorld(vec((I+1)*CellSize, J*CellSize, Map[I+1,table][J,number]+ZOff))
+        local V6 = entity():toWorld(vec((I+1)*CellSize, (J+1)*CellSize, Map[I+1,table][J+1,number]+ZOff))
+        
+        tri(Index, V4, V5, V6)
+        holoMaterial(Index, "phoenix_storms/ps_grass")
+            
+        Index++
+        N = 1
+        J++
+        
+        if(J >= Size){
+            I++
+            J = 1
+        }
+    }
+}
+

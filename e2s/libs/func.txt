@@ -1,0 +1,53 @@
+@name func
+
+function number remap(Val,Min1,Max1,Min2,Max2){
+    return Min2 + (Val - Min1) * (Max2 - Min2) / (Max1 - Min1)
+}
+
+function number vector2:v2dist(V:vector2){
+    local X1 = This:x()
+    local Y1 = This:y()
+    local X2 = V:x()
+    local Y2 = V:y()
+    return sqrt((X2-X1)^2 + (Y2-Y1)^2)
+}
+
+function number nlerp(A,B,F){
+    return A + F * (B - A)
+}
+
+function angle alerp(A:angle, B:angle, F){
+    local X = A:pitch()
+    local Y = A:yaw()
+    local Z = A:roll()
+    local Xf = B:pitch()
+    local Yf = B:yaw()
+    local Zf = B:roll()
+    
+    return ang(nlerp(X,Xf,F), nlerp(Y,Yf,F), nlerp(Z,Zf,F))
+}
+
+function vector vlerp(A:vector, B:vector, F){
+    local X = A:x()
+    local Y = A:y()
+    local Z = A:z()
+    local Xf = B:x()
+    local Yf = B:y()
+    local Zf = B:z()
+    
+    return vec(nlerp(X,Xf,F), nlerp(Y,Yf,F), nlerp(Z,Zf,F))
+}
+
+function vector2 v2lerp(A:vector2, B:vector2, F){
+    local X = A:x()
+    local Y = A:y()
+    local Xf = B:x()
+    local Yf = B:y()
+    
+    return vec2(nlerp(X,Xf,F), nlerp(Y,Yf,F))
+}
+#[
+function vector abs(V:vector){
+    return vec(abs(V:x()),abs(V:y()),abs(V:z()))
+}
+]#

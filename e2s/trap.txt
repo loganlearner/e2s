@@ -1,0 +1,43 @@
+@name trap
+@inputs 
+@outputs 
+@persist Trapped:array
+@trigger 
+
+if(first()){
+    runOnTick(1)
+    runOnChat(1)
+}
+
+if(chatClk(owner())){
+    local LS = lastSaid():lower():explode(" ")
+    
+    if(LS[1,string] == "!trap"){
+        local P = findPlayerByName(LS[2,string])
+        
+        if(P:isPlayer()){
+            if(Trapped:indexOf(P) == 0){
+                Trapped:pushEntity(P)
+            }
+        }
+    }
+    
+    if(LS[1,string] == "!release"){
+        local P = findPlayerByName(LS[2,string])
+        
+        if(P:isPlayer()){
+            if(Trapped:indexOf(P) > 0){
+                Trapped:remove(Trapped:indexOf(P))
+            }
+        }
+    }
+}
+
+for(I=1, Trapped:count()){
+    local Dist = Trapped[I,entity]:pos():distance(entity():pos())
+    
+    Trapped[I,entity]:plyNoclip(0)
+    if(Dist > 420){
+        Trapped[I,entity]:plySetPos(entity():pos() + vec(0,0,50))
+    }
+}

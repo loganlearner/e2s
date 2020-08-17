@@ -1,0 +1,86 @@
+@name graph
+@inputs CS:wirelink
+@persist Data:array RMax L
+
+if(first()){
+    runOnTick(1)
+    Data = array()
+    L = 1
+}
+
+function number remap(Val,Min1,Max1,Min2,Max2){
+    return Min2 + (Val - Min1) * (Max2 - Min2) / (Max1 - Min1)
+}
+
+function number nlerp(A,B,F){
+    return A + F * (B - A)
+}
+
+local T = date()["sec",number]
+
+if(changed(T)){
+    
+    local R = array()
+    foreach(K, V:entity = players()){
+        R:pushNumber(V:ping())
+    }
+    
+    #findByClass("prop_physics")
+    #R = findToArray()
+    
+    if(Data:count() == 0){
+        RMax = R:average()
+    }
+    
+    if(Data:count() > 50){
+        Data:remove(1)
+    }
+    
+    if(T%1 == 0){
+        Data:pushNumber(R:average())
+        L = !L
+    }
+
+    RMax = round(nlerp(RMax,Data:max(),0.2),1)
+}
+
+if(changed(L)){
+    CS:egpClear()
+    
+    local I = 2
+    
+    CS:egpText(1000, "Average Ping Trend", vec2(256,-20))
+    CS:egpSize(1000, 25)
+    CS:egpAlign(1000, 1, 1)
+    #CS:egpLine(1001, vec2(0,512), vec2(512))
+    #CS:egpLine(1002, vec2(512,0), vec2(512))
+    #CS:egpLine(1003, vec2(0,0), vec2(512,0))
+    #CS:egpLine(1004, vec2(0,512), vec2(0,0))
+    
+    while(I <= Data:count() & perf()){
+        local R = 512
+        local X = round(remap(I-1,0,Data:count(),0,R),0)
+        local Y = round(remap(Data[I-1,number],0,RMax,R,0),0)
+        local Xf = round(remap(I,0,Data:count(),0,R),0)
+        local Yf = round(remap(Data[I,number],0,RMax,R,0),0)
+        
+        if(Data[I-1,number] > 0){
+            CS:egpLine(I, vec2(X,Y), vec2(Xf,Yf))
+            if(Data[I-1,number] < Data[I,number]){
+                CS:egpColor(I, vec(0,255,0))
+            }elseif(Data[I-1,number] > Data[I,number]){
+                CS:egpColor(I, vec(255,0,0))
+            }
+        }else{
+            CS:egpLine(I, vec2(0,Yf), vec2(Xf,Yf))
+            #CS:egpColor(I, vec(0,255,0))
+        }
+        
+        I++
+        
+        if(I > Data:count()){
+            CS:egpText(I+1, round(Data[I-1,number],2):toString(), vec2(Xf,Yf))
+            CS:egpAlign(I+1, 1, 2)
+        }
+    }
+}

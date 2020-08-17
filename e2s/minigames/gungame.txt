@@ -1,0 +1,179 @@
+@name minigames/gungame
+@persist [PlyLvl,PrevWeapons]:table Players:array LJ Levels:array Restarting [Prop1,Prop2]:entity
+
+function number keyFromVal(A:array, Ent:entity){
+    for(I=1, A:count()){
+        if(A[I,entity] == Ent){
+            return I
+        }
+    }
+    return 0
+}
+
+function entity:onWin(){
+    Restarting = 1
+    E = effect()
+    E:setScale(2)
+    E:setMagnitude(5)
+    E:setRadius(10)
+    E:setOrigin(This:shootPos())
+    E:play("Sparks")
+    concmd("ulx playsound garrysmod/save_load4.wav;ulx tsay \"[GunGame] " + This:name() + " has won the game! Restarting...\"")
+    
+    timer("restart", 10000)
+    foreach(K, V:entity = Players){
+        V:plyStripWeapons()
+    }
+}
+
+function entity:onKill(){
+    This:plyStripWeapons()
+    local N = PlyLvl[This:steamID(),number]
+    PlyLvl[This:steamID(),number] = N + 1
+    local Weap = Levels[PlyLvl[This:steamID(),number],string]
+    This:plyGive(Levels[PlyLvl[This:steamID(),number],string])
+    if(inrange(PlyLvl[This:steamID(),number], 1, Levels:count())){
+        concmd("ulx tsay \"[GunGame] " + This:name() + " got the weapon " + Weap + "!\"")
+    }
+    if(PlyLvl[This:steamID(),number] > Levels:count()){
+        This:onWin()
+    }
+}
+
+function entity:onEnter(){
+    if(!This:plyHasGod()){
+        local Weapons = This:getWeapons()
+        local Weaps = array()
+        for(I=1,Weapons:count()){
+            Weaps:pushString(Weapons[I,entity]:type())
+        }
+        if(!PlyLvl[This:steamID(),number]){
+            PlyLvl[This:steamID(),number] = 1
+        }
+        PrevWeapons[This:steamID(),array] = Weaps
+        This:plyStripWeapons()
+        #This:plySetHealth(100)
+        This:plyGive(Levels[PlyLvl[This:steamID(),number],string])
+    }else{
+        if(This != owner()){
+            This:plySetPos(entity():pos())
+        }
+    }
+}
+
+function entity:onLeave(){
+    local Weaps = PrevWeapons[This:steamID(),array]
+    
+    for(I=1, Weaps:count()){
+        This:plyGive(Weaps[I,string])
+    }
+}
+
+function entity:degradeCheck(){
+    local N = PlyLvl[This:steamID(),number]
+    
+    if(N == Levels:count()){
+        PlyLvl[This:steamID(),number] = N - 1
+        concmd("ulx tsay \"[GunGame] " + This:name() + " lost a level at the last weapon!\"")
+    }
+}
+
+function entity:onSuicide(){
+    local N = PlyLvl[This:steamID(),number]
+    PlyLvl[This:steamID(),number] = clamp(N-1, 1, Levels:count())
+    concmd("ulx tsay \"[GunGame] " + This:name() + " lost a level by suiciding!\"")
+}
+
+function array:wepControl(A:array){
+    local Joiners = This:difference(A)
+    local Leavers = A:difference(This)
+    
+    for(I=1,Joiners:count()){
+        Joiners[I,entity]:onEnter()
+    }
+    for(I=1,Leavers:count()){
+        Leavers[I,entity]:onLeave()
+    }
+}
+
+if(first()){
+    runOnTick(1)
+    runOnDeath(1)
+    
+    Prop1 = propSpawn("models/hunter/blocks/cube025x025x025.mdl",1)
+    Prop2 = propSpawn("models/hunter/blocks/cube025x025x025.mdl",1)
+    
+    Restarting = 0
+    
+    Levels = array(
+        "m9k_minigun",
+        "m9k_pkm",
+        "m9k_m249lmg",
+        "m9k_fg42",
+        "m9k_ak47",
+        "m9k_m4a1",
+        "m9k_m1918bar",
+        "m9k_m14sp",
+        "m9k_fal",
+        "m9k_mp40",
+        "m9k_bizonp19",
+        "m9k_mp5sd",
+        "m9k_1887winchester",
+        "m9k_ithacam37",
+        "m9k_m3",
+        "m9k_deagle",
+        "m9k_m92beretta",
+        "m9k_hk45",
+        "weapon_stunstick"
+    )
+    
+    concmd("ulx tsay \"[GunGame] Game created.\"")
+    
+    holoCreate(1)
+        holoMaterial(1, "sprops/sprops_grid_12x12")
+        holoColor(1, vec4(255,0,0,100))
+        holoDisableShading(1, 1)
+}
+
+if(!Restarting & Prop1:isValid() & Prop2:isValid()){
+    ArrPrev = Players
+    findIncludeClass("player")
+    findInBox(Prop1:pos(), Prop2:pos())
+    Arr = findToArray()
+    Players = Arr
+    
+    Players:wepControl(ArrPrev)
+    
+    holoPos(1, (Prop1:pos() + Prop2:pos())/2)
+    holoScaleUnits(1, positive(Prop1:pos() - Prop2:pos()))
+    
+    if(deathClk()){
+        local Attacker = lastDeathAttacker()
+        local Victim = lastDeath()
+        
+        if(keyFromVal(Players, Attacker)){
+            if(Attacker:playerIsInPvp()){
+                if(Attacker != Victim){
+                    if(Attacker:weapon():type() == Levels[PlyLvl[Attacker:steamID(),number],string]){
+                        Attacker:onKill()
+                        Victim:degradeCheck()
+                    }else{
+                        Attacker:plyStripWeapons()
+                        Attacker:plyGive(Levels[PlyLvl[Attacker:steamID(),number],string])
+                        concmd("ulx psay \"" + Attacker:name() + "\" \"Please use the provided weapon in the arena.\"")
+                    }
+                }else{
+                    Attacker:onSuicide()
+                }
+            }
+        }
+    }
+}
+
+if(clk("restart")){
+    Restarting = 0
+    PlyLvl = table()
+    foreach(K, V:entity=Players){
+        V:onEnter()
+    }
+}

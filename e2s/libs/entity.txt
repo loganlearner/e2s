@@ -1,0 +1,39 @@
+@name entity
+
+function entity:hide(){
+    This:setAlpha(0)
+    
+    #ifdef entity:propNotSolid(number)
+    
+        This:propNotSolid(1)
+        
+    #endif
+}
+
+function number entity:getMass(){
+    local Props = This:getConstraints()
+    local M = This:mass()
+    
+    for(I=1,Props:count()){
+        M += Props[I,entity]:mass()
+    }
+    
+    return M
+}
+
+function vector entity:centerMass(){
+    local Props = This:getConstraints()
+    local Out = array()
+    local V = vec()
+    
+    for(I=1,Props:count()){
+        Out:pushVector(Props[I,entity]:massCenter())
+    }
+    
+    for(I=1,Out:count()){
+        V = V + Out[I,vector]
+    }
+    V = V/Out:count()
+    
+    return V
+}
